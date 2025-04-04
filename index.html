@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CTF Chat Room</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: monospace;
+      background: #000;
+      color: #0f0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    #input-box {
+      display: flex;
+      border-top: 1px solid #0f0;
+    }
+
+    input, button {
+      font-family: monospace;
+      font-size: 16px;
+      background: #111;
+      color: #0f0;
+      border: none;
+      padding: 10px;
+      outline: none;
+    }
+
+    input {
+      flex: 1;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: rgba(0,0,0,0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    #modal input {
+      width: 300px;
+      margin: 10px 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Secret Key Modal -->
+  <div id="modal">
+    <h2>🔐 Enter Secret Key to Join Chat</h2>
+    <input type="password" id="secretKeyInput" placeholder="Enter Secret Key..." />
+    <button onclick="checkKey()">Enter</button>
+    <p id="error" style="color:red;"></p>
+  </div>
+
+  <!-- Chat UI -->
+  <div id="chat-box"></div>
+  <div id="input-box">
+    <input type="text" id="messageInput" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <!-- Pusher CDN -->
+  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+
+  <script>
+    const SECRET_KEY = "ctf-404-team"; // your chat room key
+    const modal = document.getElementById('modal');
+    const error = document.getElementById('error');
+
+    function checkKey() {
+      const input = document.getElementById('secretKeyInput').value;
+      if (input === SECRET_KEY) {
+        modal.style.display = 'none';
+      } else {
+        error.textContent = "❌ Wrong key. Try again.";
+      }
+    }
+
+    // Setup Pusher
+    const pusher = new Pusher('219e140cf2063fbd9171', {
+      cluster: 'ap2',
+      encrypted: true
+    });
+
+    const channel = pusher.subscribe('ctf-chat');
+
+    channel.bind('message', function(data) {
+      const box = document.getElementById('chat-box');
+      const div = document.createElement('div');
+      div.textContent = data.text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    });
+
+    // Send message via backend
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      fetch('https://ctf-chat.glitch.me/message', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text: message})
+      });
+
+      input.value = '';
+    }
+  </script>
+</body>
+</html>
